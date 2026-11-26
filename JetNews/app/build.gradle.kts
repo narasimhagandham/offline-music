@@ -28,7 +28,7 @@ android {
     namespace = "com.example.jetnews"
 
     defaultConfig {
-        applicationId = "com.example.jetnews"
+        applicationId = "com.example.offlinemusic"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1
