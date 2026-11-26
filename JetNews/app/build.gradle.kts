@@ -25,7 +25,6 @@ plugins {
 
 android {
     compileSdk = libs.versions.compileSdk.get().toInt()
-    compileSdkMinor = 2
     namespace = "com.example.jetnews"
 
     defaultConfig {
@@ -64,11 +63,11 @@ android {
             )
         }
     }
-    kotlin {
-        compilerOptions {
-            jvmTarget = JvmTarget.fromTarget("17")
-        }
-    }
+kotlinOptions {
+    jvmTarget = "17"
+}
+
+
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
