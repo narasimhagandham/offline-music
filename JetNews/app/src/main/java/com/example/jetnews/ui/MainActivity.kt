@@ -26,10 +26,26 @@ import android.provider.MediaStore
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -37,10 +53,46 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Album
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Audiotrack
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PlaylistAdd
+import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Typography
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -86,7 +138,11 @@ class MusicRepository(private val context: Context) {
         val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
 
         context.contentResolver.query(
-            collection, projection, selection, null, "${MediaStore.Audio.Media.TITLE} ASC"
+            collection,
+            projection,
+            selection,
+            null,
+            "${MediaStore.Audio.Media.TITLE} ASC"
         )?.use { cursor ->
             val idCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
             val titleCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
@@ -162,15 +218,29 @@ fun MusicAppScreen() {
 
     if (!permissionState.status.isGranted) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(Icons.Default.MusicNote, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
+            Icon(
+                Icons.Default.MusicNote,
+                contentDescription = null,
+                modifier = Modifier.size(64.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Audio Permission Required", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(
+                "Audio Permission Required",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Allow access to scan and play offline music stored on your phone.", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "Allow access to scan and play offline music stored on your phone.",
+                style = MaterialTheme.typography.bodyMedium
+            )
             Spacer(modifier = Modifier.height(24.dp))
             Button(onClick = { permissionState.launchPermissionRequest() }) {
                 Text("Grant Permission")
@@ -181,283 +251,3 @@ fun MusicAppScreen() {
 
     val repository = remember { MusicRepository(context) }
     val exoPlayer = remember { ExoPlayer.Builder(context).build() }
-    DisposableEffect(Unit) { onDispose { exoPlayer.release() } }
-
-    var songs by remember { mutableStateOf(repository.getLocalSongs()) }
-    var playlists by remember { mutableStateOf(listOf<Playlist>()) }
-    var selectedTab by remember { mutableIntStateOf(0) }
-    var currentSong by remember { mutableStateOf<Song?>(null) }
-    var isPlaying by remember { mutableStateOf(false) }
-    var showCreatePlaylistDialog by remember { mutableStateOf(false) }
-    var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
-
-    fun playSong(song: Song) {
-        currentSong = song
-        exoPlayer.setMediaItem(MediaItem.fromUri(song.uri))
-        exoPlayer.prepare()
-        exoPlayer.play()
-        isPlaying = true
-    }
-
-    fun toggleFavorite(songId: Long) {
-        songs = songs.map { if (it.id == songId) it.copy(isFavorite = !it.isFavorite) else it }
-    }
-
-    Scaffold(
-        topBar = {
-            LargeTopAppBar(
-                title = { Text("Offline Music", fontWeight = FontWeight.Bold) },
-                actions = {
-                    if (selectedTab == 3) {
-                        IconButton(onClick = { showCreatePlaylistDialog = true }) {
-                            Icon(Icons.Default.Add, contentDescription = "Create Playlist")
-                        }
-                    }
-                }
-            )
-        },
-        bottomBar = {
-            Column {
-                AnimatedVisibility(
-                    visible = currentSong != null,
-                    enter = slideInVertically { it } + fadeIn(),
-                    exit = slideOutVertically { it } + fadeOut()
-                ) {
-                    currentSong?.let { song ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
-                            shape = RoundedCornerShape(24.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(Icons.Default.MusicNote, contentDescription = null, modifier = Modifier.size(32.dp))
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(song.title, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                                    Text(song.artist, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall)
-}
-IconButton(onClick = {
-if (isPlaying) exoPlayer.pause() else exoPlayer.play()
-isPlaying = !isPlaying
-}) {
-Icon(if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = "Play/Pause")
-}
-}
-}
-}
-}
-NavigationBar {
-val items = listOf("Songs", "Albums", "Favorites", "Playlists")
-val icons = listOf(Icons.Default.MusicNote, Icons.Default.Album, Icons.Default.Favorite, Icons.Default.QueueMusic)
-items.forEachIndexed { index, label ->
-NavigationBarItem(
-selected = selectedTab == index,
-onClick = { selectedTab = index },
-icon = { Icon(icons[index], contentDescription = label) },
-label = { Text(label) }
-)
-}
-}
-}
-}
-) { padding ->
-Crossfade(targetState = selectedTab, modifier = Modifier.padding(padding), label = "TabTransition") { tab ->
-when (tab) {
-0 -> SongList(songs, onPlay = ::playSong, onToggleFav = ::toggleFavorite, onAddToPlaylist = { songToAddToPlaylist = it })
-1 -> AlbumGrid(songs, onPlay = ::playSong, onToggleFav = ::toggleFavorite, onAddToPlaylist = { songToAddToPlaylist = it })
-2 -> SongList(songs.filter { it.isFavorite }, onPlay = ::playSong, onToggleFav = ::toggleFavorite, onAddToPlaylist = { songToAddToPlaylist = it })
-3 -> PlaylistList(playlists, onPlay = ::playSong, onToggleFav = ::toggleFavorite, onCreateClick = { showCreatePlaylistDialog = true })
-}
-}
-}
-// Create Playlist Dialog
-if (showCreatePlaylistDialog) {
-var playlistName by remember { mutableStateOf("") }
-AlertDialog(
-onDismissRequest = { showCreatePlaylistDialog = false },
-title = { Text("New Playlist") },
-text = {
-OutlinedTextField(
-value = playlistName,
-onValueChange = { playlistName = it },
-label = { Text("Playlist Name") },
-singleLine = true
-)
-},
-confirmButton = {
-TextButton(onClick = {
-if (playlistName.isNotBlank()) {
-playlists = playlists + Playlist(UUID.randomUUID().toString(), playlistName, emptyList())
-showCreatePlaylistDialog = false
-}
-}) { Text("Create") }
-},
-dismissButton = {
-TextButton(onClick = { showCreatePlaylistDialog = false }) { Text("Cancel") }
-}
-)
-}
-// Add Song to Playlist Dialog
-songToAddToPlaylist?.let { song ->
-AlertDialog(
-onDismissRequest = { songToAddToPlaylist = null },
-title = { Text("Add to Playlist") },
-text = {
-if (playlists.isEmpty()) {
-Text("No playlists created yet. Go to the Playlists tab and tap + to create one.")
-} else {
-LazyColumn {
-items(playlists) { playlist ->
-ListItem(
-modifier = Modifier.clickable {
-playlists = playlists.map {
-if (it.id == playlist.id && !it.songs.contains(song)) {
-it.copy(songs = it.songs + song)
-} else it
-}
-songToAddToPlaylist = null
-},
-headlineContent = { Text(playlist.name) }
-)
-}
-}
-}
-},
-confirmButton = {
-TextButton(onClick = { songToAddToPlaylist = null }) { Text("Close") }
-}
-)
-}
-}
-@Composable
-fun SongList(
-songs: List,
-onPlay: (Song) -> Unit,
-onToggleFav: (Long) -> Unit,
-onAddToPlaylist: ((Song) -> Unit)? = null
-) {
-if (songs.isEmpty()) {
-Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-Text("No songs found", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-}
-return
-}
-LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-items(songs) { song ->
-ListItem(
-modifier = Modifier.clickable { onPlay(song) },
-headlineContent = { Text(song.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-supportingContent = { Text(song.artist, maxLines = 1) },
-leadingContent = {
-Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.size(48.dp)) {
-Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Audiotrack, contentDescription = null) }
-}
-},
-trailingContent = {
-Row {
-if (onAddToPlaylist != null) {
-IconButton(onClick = { onAddToPlaylist(song) }) {
-Icon(Icons.Default.PlaylistAdd, contentDescription = "Add to Playlist")
-}
-}
-IconButton(onClick = { onToggleFav(song.id) }) {
-Icon(
-imageVector = if (song.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-contentDescription = "Favorite",
-tint = if (song.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-)
-}
-}
-}
-)
-}
-}
-}
-@Composable
-fun AlbumGrid(
-songs: List,
-onPlay: (Song) -> Unit,
-onToggleFav: (Long) -> Unit,
-onAddToPlaylist: (Song) -> Unit
-) {
-val albums = songs.groupBy { it.album }
-var selectedAlbum by remember { mutableStateOf<String?>(null) }
-if (selectedAlbum != null) {
-Column {
-TextButton(onClick = { selectedAlbum = null }, modifier = Modifier.padding(horizontal = 16.dp)) {
-Icon(Icons.Default.ArrowBack, contentDescription = null)
-Spacer(modifier = Modifier.width(8.dp))
-Text("Back to Albums")
-}
-SongList(albums[selectedAlbum] ?: emptyList(), onPlay, onToggleFav, onAddToPlaylist)
-}
-} else {
-LazyVerticalGrid(
-columns = GridCells.Fixed(2),
-contentPadding = PaddingValues(16.dp),
-horizontalArrangement = Arrangement.spacedBy(12.dp),
-verticalArrangement = Arrangement.spacedBy(12.dp)
-) {
-items(albums.keys.toList()) { albumName ->
-Card(
-modifier = Modifier.clickable { selectedAlbum = albumName },
-shape = RoundedCornerShape(20.dp),
-colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-) {
-Column(modifier = Modifier.padding(16.dp)) {
-Icon(Icons.Default.Album, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
-Spacer(modifier = Modifier.height(8.dp))
-Text(albumName, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-Text("${albums[albumName]?.size ?: 0} songs", style = MaterialTheme.typography.bodySmall)
-}
-}
-}
-}
-}
-}
-@Composable
-fun PlaylistList(
-playlists: List,
-onPlay: (Song) -> Unit,
-onToggleFav: (Long) -> Unit,
-onCreateClick: () -> Unit
-) {
-var selectedPlaylist by remember { mutableStateOf<Playlist?>(null) }
-if (selectedPlaylist != null) {
-val current = playlists.find { it.id == selectedPlaylist?.id }
-Column {
-TextButton(onClick = { selectedPlaylist = null }, modifier = Modifier.padding(horizontal = 16.dp)) {
-Icon(Icons.Default.ArrowBack, contentDescription = null)
-Spacer(modifier = Modifier.width(8.dp))
-Text("Back to Playlists")
-}
-SongList(current?.songs ?: emptyList(), onPlay, onToggleFav)
-}
-} else if (playlists.isEmpty()) {
-Column(
-modifier = Modifier.fillMaxSize(),
-verticalArrangement = Arrangement.Center,
-horizontalAlignment = Alignment.CenterHorizontally
-) {
-Text("No playlists yet")
-Spacer(modifier = Modifier.height(8.dp))
-Button(onClick = onCreateClick) { Text("Create Playlist") }
-}
-} else {
-LazyColumn(contentPadding = PaddingValues(16.dp)) {
-items(playlists) { playlist ->
-ListItem(
-modifier = Modifier.clickable { selectedPlaylist = playlist },
-headlineContent = { Text(playlist.name, fontWeight = FontWeight.Medium) },
-supportingContent = { Text("${playlist.songs.size} tracks") },
-leadingContent = { Icon(Icons.Default.QueueMusic, contentDescription = null) }
-)
-}
-}
-}
-}
