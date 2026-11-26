@@ -1,5 +1,6 @@
 package com.example.jetnews.ui
-
+import android.app.PendingIntent
+import android.content.Intent
 import android.Manifest
 import android.content.ComponentName
 import android.content.ContentUris
@@ -56,13 +57,25 @@ import kotlinx.coroutines.delay
 import java.util.UUID
 
 // --- BACKGROUND NOTIFICATION & LOCKSCREEN SERVICE ---
+// --- BACKGROUND NOTIFICATION & LOCKSCREEN SERVICE ---
 class MusicPlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
 
     override fun onCreate() {
         super.onCreate()
         val player = ExoPlayer.Builder(this).build()
-        mediaSession = MediaSession.Builder(this, player).build()
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        mediaSession = MediaSession.Builder(this, player)
+            .setSessionActivity(pendingIntent)
+            .build()
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
@@ -76,6 +89,7 @@ class MusicPlaybackService : MediaSessionService() {
         super.onDestroy()
     }
 }
+
 
 // --- DATA MODELS ---
 data class Song(
