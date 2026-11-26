@@ -5,7 +5,7 @@
 [versions]
 accompanist = "0.37.3"
 android-material3 = "1.14.0"
-androidGradlePlugin = "8.7.3"
+androidGradlePlugin = "9.1.0"
 androidx-activity-compose = "1.13.0"
 androidx-appcompat = "1.8.0"
 androidx-compose-bom = "2026.11.01"
@@ -32,7 +32,7 @@ androidxHiltNavigationCompose = "1.4.0"
 androix-test-uiautomator = "2.4.1"
 coil = "2.7.0"
 # @keep
-compileSdk = "35"
+compileSdk = "37"
 coroutines = "1.11.0"
 google-maps = "20.1.0"
 gradle-versions = "0.67.0"
