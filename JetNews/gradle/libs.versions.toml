@@ -57,7 +57,7 @@ room = "2.8.5"
 secrets = "2.0.1"
 spotless = "8.11.0"
 # @keep
-targetSdk = "33"
+targetSdk = "35"
 version-catalog-update = "1.1.2"
 
 [libraries]
