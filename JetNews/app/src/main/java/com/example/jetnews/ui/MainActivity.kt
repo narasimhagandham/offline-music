@@ -316,22 +316,6 @@ fun MusicContent(settings: AppSettings, onSettingsChange: (AppSettings) -> Unit)
         }
     }
 
-    // Restore the previous queue (paused) once both the player and the library are ready
-    var restored by remember { mutableStateOf(false) }
-    LaunchedEffect(controller, songsById) {
-        val c = controller ?: return@LaunchedEffect
-        if (restored || songsById.isEmpty()) return@LaunchedEffect
-        restored = true
-        if (settings.resumeOnLaunch && c.mediaItemCount == 0) {
-            val saved = store.loadQueue() ?: return@LaunchedEffect
-            val items = saved.ids.mapNotNull { songsById[it]?.toMediaItem() }
-            if (items.isNotEmpty()) {
-                c.setMediaItems(items, saved.index.coerceIn(0, items.size - 1), saved.position)
-                c.prepare()
-            }
-        }
-    }
-
     // Poll only while audible and on screen; otherwise the CPU is free to sleep
     LaunchedEffect(controller, isPlaying, resumed, showFullPlayer, settings.lowPower) {
         controller?.let { position = it.currentPosition.coerceAtLeast(0L) }
