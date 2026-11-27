@@ -53,6 +53,9 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -364,7 +367,12 @@ fun MiniPlayer(
     onNext: () -> Unit,
     onPrev: () -> Unit
 ) {
-    Surface(tonalElevation = 3.dp, modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen)) {
+    Surface(
+        tonalElevation = 3.dp,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)).clickable(onClick = onOpen)
+    ) {
         Column {
             LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
             Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -419,14 +427,20 @@ fun NowPlayingSheet(
     val accent = MaterialTheme.colorScheme.primary
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+    ) {
         Column(
-            Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 24.dp),
+            Modifier.fillMaxSize().navigationBarsPadding()
+                .padding(horizontal = 24.dp).padding(bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
-                Modifier.fillMaxWidth(0.7f).aspectRatio(1f)
-                    .clip(RoundedCornerShape(if (settings.lowPower) 8.dp else 24.dp))
+                Modifier.weight(1f).aspectRatio(1f)
+                    .clip(RoundedCornerShape(if (settings.lowPower) 8.dp else 40.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
@@ -474,7 +488,15 @@ fun NowPlayingSheet(
                     Icon(Icons.Default.Shuffle, "Shuffle", tint = if (shuffle) accent else muted)
                 }
                 IconButton(onClick = onPrev) { Icon(Icons.Default.SkipPrevious, "Previous", Modifier.size(36.dp)) }
-                FilledIconButton(onClick = onToggle, modifier = Modifier.size(64.dp)) {
+                FilledIconButton(
+                    onClick = onToggle,
+                    modifier = Modifier.size(width = 96.dp, height = 72.dp),
+                    shape = if (isPlaying) RoundedCornerShape(24.dp) else CircleShape,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                ) {
                     Icon(
                         if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                         if (isPlaying) "Pause" else "Play",
